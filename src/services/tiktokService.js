@@ -2,8 +2,22 @@ import axios from "axios";
 
 const API = "https://tikwm.com/api/";
 
+async function resolveTikTokUrl(url) {
+  try {
+    const res = await axios.get(url, {
+      maxRedirects: 5,
+      timeout: 10000
+    });
+    return res.request?.res?.responseUrl || url;
+  } catch {
+    return url;
+  }
+}
+
 export const getTikTokVideo = async (url) => {
-  const res = await axios.post(API, { url }, { timeout: 10000 });
+  const finalUrl = await resolveTikTokUrl(url);
+
+  const res = await axios.post(API, { url: finalUrl }, { timeout: 10000 });
 
   const data = res.data?.data;
   if (!data) throw new Error("Gagal ambil data");
