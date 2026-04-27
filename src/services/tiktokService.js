@@ -16,8 +16,15 @@ export const getTikTokVideo = async (url) => {
     };
   }
 
+  // fallback video sources
+  const videoUrl = data.play || data.wmplay || data.hdplay;
+
+  if (!videoUrl) {
+    throw new Error("Video tidak tersedia dari API");
+  }
+
   return {
     type: "video",
-    video: data.play
+    video: videoUrl
   };
 };
