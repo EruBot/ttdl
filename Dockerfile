@@ -3,8 +3,8 @@ FROM node:18
 WORKDIR /app
 
 COPY package.json ./
-RUN npm install --no-audit --no-fund --prefer-offline
+RUN npm install --omit=dev --no-audit --no-fund --prefer-offline
 
 COPY . .
 
-CMD ["npm", "start"]
+CMD ["node", "index.js"]
