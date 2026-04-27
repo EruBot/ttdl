@@ -88,4 +88,12 @@ async function fetchFallback(url) {
 }
 
 export const getTikTokVideo = async (url) => {
-  const
+  const resolved = await resolveTikTokUrl(url);
+  const clean = cleanUrl(resolved);
+
+  try {
+    return await fetchTikwm(clean);
+  } catch {
+    return await fetchFallback(clean);
+  }
+};
