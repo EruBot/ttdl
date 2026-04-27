@@ -51,6 +51,23 @@ async function fetchTikwm(url) {
   };
 }
 
+function extractVideoFromHtml(html) {
+  const patterns = [
+    /"playAddr":"(.*?)"/,
+    /"downloadAddr":"(.*?)"/,
+    /"play_url":"(.*?)"/
+  ];
+
+  for (const regex of patterns) {
+    const match = html.match(regex);
+    if (match && match[1]) {
+      return match[1].replace(/\\u0026/g, "&");
+    }
+  }
+
+  return null;
+}
+
 async function fetchFallback(url) {
   const res = await axios.get(url, {
     headers: {
@@ -60,11 +77,9 @@ async function fetchFallback(url) {
   });
 
   const html = res.data;
+  const video = extractVideoFromHtml(html);
 
-  const match = html.match(/\"playAddr\":\"(.*?)\"/);
-  if (!match) throw new Error("Fallback failed");
-
-  const video = match[1].replace(/\\u0026/g, "&");
+  if (!video) throw new Error("Fallback failed");
 
   return {
     type: "video",
@@ -73,12 +88,4 @@ async function fetchFallback(url) {
 }
 
 export const getTikTokVideo = async (url) => {
-  const resolved = await resolveTikTokUrl(url);
-  const clean = cleanUrl(resolved);
-
-  try {
-    return await fetchTikwm(clean);
-  } catch {
-    return await fetchFallback(clean);
-  }
-};
+  const
