@@ -8,25 +8,32 @@ async function resolveTikTokUrl(url) {
       maxRedirects: 10,
       timeout: 10000,
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
       },
       validateStatus: (s) => s >= 200 && s < 400
     });
 
-    const finalUrl = res?.request?.res?.responseUrl;
-    return finalUrl || url;
+    return res?.request?.res?.responseUrl || url;
   } catch {
     return url;
   }
 }
 
-export const getTikTokVideo = async (url) => {
-  const finalUrl = await resolveTikTokUrl(url);
+function cleanUrl(url) {
+  try {
+    const u = new URL(url);
+    return `${u.origin}${u.pathname}`;
+  } catch {
+    return url;
+  }
+}
 
-  const res = await axios.post(API, { url: finalUrl }, { timeout: 10000 });
+async function fetchTikwm(url) {
+  const res = await axios.post(API, { url }, { timeout: 10000 });
 
   const data = res.data?.data;
-  if (!data) throw new Error("Gagal ambil data");
+  if (!data) throw new Error("Tikwm error");
 
   if (data.images && Array.isArray(data.images) && data.images.length > 0) {
     return {
@@ -35,14 +42,43 @@ export const getTikTokVideo = async (url) => {
     };
   }
 
-  const videoUrl = data.play || data.wmplay || data.hdplay;
-
-  if (!videoUrl) {
-    throw new Error("Video tidak tersedia dari API");
-  }
+  const video = data.play || data.wmplay || data.hdplay;
+  if (!video) throw new Error("No video");
 
   return {
     type: "video",
-    video: videoUrl
+    video
   };
+}
+
+async function fetchFallback(url) {
+  const res = await axios.get(url, {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
+  });
+
+  const html = res.data;
+
+  const match = html.match(/\"playAddr\":\"(.*?)\"/);
+  if (!match) throw new Error("Fallback failed");
+
+  const video = match[1].replace(/\\u0026/g, "&");
+
+  return {
+    type: "video",
+    video
+  };
+}
+
+export const getTikTokVideo = async (url) => {
+  const resolved = await resolveTikTokUrl(url);
+  const clean = cleanUrl(resolved);
+
+  try {
+    return await fetchTikwm(clean);
+  } catch {
+    return await fetchFallback(clean);
+  }
 };
