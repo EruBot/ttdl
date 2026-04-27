@@ -30,9 +30,20 @@ export function registerTextHandler(bot) {
           return ctx.replyWithVideo(cached, { supports_streaming: true });
         }
 
-        const { video } = await getTikTokVideo(url);
+        const result = await getTikTokVideo(url);
 
-        const msg = await ctx.replyWithVideo(video, {
+        if (result.type === "image" && result.images?.length) {
+          const media = result.images.map((img, i) => ({
+            type: "photo",
+            media: img,
+            caption: i === 0 ? "Done" : undefined
+          }));
+
+          await ctx.replyWithMediaGroup(media);
+          return;
+        }
+
+        const msg = await ctx.replyWithVideo(result.video, {
           supports_streaming: true
         });
 
